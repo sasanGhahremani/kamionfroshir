@@ -8,11 +8,24 @@ android {
         applicationId "com.ghahremani.kamionfroshir"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
+    }
+    signingConfigs {
+        release {
+            def ksPath = System.getenv("KEYSTORE_PATH") ?: "release.jks"
+            def ksPass = System.getenv("KEYSTORE_PASSWORD") ?: "kamion123"
+            def keyAlias = System.getenv("KEY_ALIAS") ?: "kamion"
+            def keyPass = System.getenv("KEY_PASSWORD") ?: "kamion123"
+            storeFile file(ksPath)
+            storePassword ksPass
+            keyAlias keyAlias
+            keyPassword keyPass
+        }
     }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
         }
         debug {

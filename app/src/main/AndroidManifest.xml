@@ -8,8 +8,7 @@
     <application
         android:allowBackup="true"
         android:label="kamionfrosh"
-        android:icon="@mipmap/ic_launcher"
-        android:theme="@style/Theme.AppCompat.NoActionBar">
+        android:theme="@style/Theme.Kamionfrosh">
         <activity
             android:name=".MainActivity"
             android:exported="true"

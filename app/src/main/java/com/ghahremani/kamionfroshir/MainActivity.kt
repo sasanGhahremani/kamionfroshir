@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.view.View
+import android.view.WindowManager
 import android.webkit.DownloadListener
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -33,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var errorLayout: LinearLayout
     private lateinit var errorText: TextView
     private lateinit var retryBtn: Button
+    private lateinit var loadingLayout: LinearLayout
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -43,6 +45,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // جلوگیری از اسکرین‌شات و اسکرین رکورد
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        )
+
         setContentView(R.layout.activity_main)
         supportActionBar?.hide()
 
@@ -50,6 +59,7 @@ class MainActivity : AppCompatActivity() {
         errorLayout = findViewById(R.id.errorLayout)
         errorText = findViewById(R.id.errorText)
         retryBtn = findViewById(R.id.retryBtn)
+        loadingLayout = findViewById(R.id.loadingLayout)
 
         webView.settings.apply {
             javaScriptEnabled = true
@@ -78,9 +88,23 @@ class MainActivity : AppCompatActivity() {
                 }
                 return false
             }
+            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                if (errorLayout.visibility != View.VISIBLE) {
+                    loadingLayout.visibility = View.VISIBLE
+                }
+            }
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                loadingLayout.visibility = View.GONE
+                if (errorLayout.visibility != View.VISIBLE) {
+                    webView.visibility = View.VISIBLE
+                }
+            }
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                 super.onReceivedError(view, request, error)
                 if (request?.isForMainFrame == true) {
+                    loadingLayout.visibility = View.GONE
                     if (!isInternetAvailable()) showError("اتصال اینترنتی ندارید")
                     else showError("این صفحه در دسترس نیست")
                 }
@@ -124,12 +148,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadSite() {
-        if (!isInternetAvailable()) { showError("اتصال اینترنتی ندارید"); return }
+        if (!isInternetAvailable()) {
+            loadingLayout.visibility = View.GONE
+            showError("اتصال اینترنتی ندارید")
+            return
+        }
         hideError()
+        webView.visibility = View.GONE
+        loadingLayout.visibility = View.VISIBLE
         webView.loadUrl(SITE_URL)
     }
     private fun showError(msg: String) {
         webView.visibility = View.GONE
+        loadingLayout.visibility = View.GONE
         errorLayout.visibility = View.VISIBLE
         errorText.text = msg
     }

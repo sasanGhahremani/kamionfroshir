@@ -1,34 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#FFFFFF">
-    <WebView
-        android:id="@+id/webView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-    <LinearLayout
-        android:id="@+id/errorLayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:background="#FFFFFF"
-        android:visibility="gone"
-        android:padding="32dp">
-        <TextView
-            android:id="@+id/errorText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="اتصال اینترنتی ندارید"
-            android:textSize="18sp"
-            android:textColor="#333333"
-            android:gravity="center" />
-        <Button
-            android:id="@+id/retryBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="تلاش مجدد" />
-    </LinearLayout>
+ android:layout_width="match_parent"
+ android:layout_height="match_parent"
+ android:background="#FFFFFF">
+
+<WebView
+     android:id="@+id/webView"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent" />
+
+<LinearLayout
+     android:id="@+id/loadingLayout"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     android:gravity="center"
+     android:orientation="vertical"
+     android:background="#FFFFFF"
+     android:visibility="gone"
+     android:padding="32dp">
+
+<ProgressBar
+         android:layout_width="56dp"
+         android:layout_height="56dp" />
+
+<TextView
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:layout_marginTop="16dp"
+         android:text="کامیون فروش در حال بارگذاری است..."
+         android:textSize="16sp"
+         android:textColor="#555555"
+         android:gravity="center" />
+
+</LinearLayout>
+
+<LinearLayout
+     android:id="@+id/errorLayout"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     android:gravity="center"
+     android:orientation="vertical"
+     android:background="#FFFFFF"
+     android:visibility="gone"
+     android:padding="32dp">
+
+<TextView
+         android:id="@+id/errorText"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:text="اتصال اینترنتی ندارید"
+         android:textSize="18sp"
+         android:textColor="#333333"
+         android:gravity="center" />
+
+<Button
+         android:id="@+id/retryBtn"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:layout_marginTop="20dp"
+         android:text="تلاش مجدد" />
+
+</LinearLayout>
+
 </FrameLayout>

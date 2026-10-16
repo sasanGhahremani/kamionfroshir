@@ -12,17 +12,17 @@ android {
         versionName "1.1"
     }
     signingConfigs {
-        release {
-            def ksPath = System.getenv("KEYSTORE_PATH") ?: "release.jks"
-            def ksPass = System.getenv("KEYSTORE_PASSWORD") ?: "kamion123"
-            def keyAlias = System.getenv("KEY_ALIAS") ?: "kamion"
-            def keyPass = System.getenv("KEY_PASSWORD") ?: "kamion123"
-            storeFile file(ksPath)
-            storePassword ksPass
-            keyAlias keyAlias
-            keyPassword keyPass
-        }
+    release {
+        def myKsPath = System.getenv("KEYSTORE_PATH") ?: "release.jks"
+        def myKsPass = System.getenv("KEYSTORE_PASSWORD") ?: "kamion123"
+        def myKeyA = System.getenv("KEY_ALIAS") ?: "kamion"
+        def myKeyP = System.getenv("KEY_PASSWORD") ?: "kamion123"
+        storeFile = file(myKsPath)
+        storePassword = myKsPass
+        keyAlias = myKeyA
+        keyPassword = myKeyP
     }
+}
     buildTypes {
         release {
             signingConfig signingConfigs.release

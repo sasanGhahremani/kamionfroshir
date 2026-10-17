@@ -38,15 +38,36 @@ class MainActivity : AppCompatActivity() {
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        val uris = WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data)?.toList() ?: emptyList()
-        filePathCallback?.onReceiveValue(uris.toTypedArray())
+        if (filePathCallback == null) return@registerForActivityResult
+        var uris: Array<Uri>? = null
+        if (result.resultCode == RESULT_OK && result.data != null) {
+            val data = result.data!!
+            try {
+                val parsed = WebChromeClient.FileChooserParams.parseResult(result.resultCode, data)
+                if (parsed != null && parsed.isNotEmpty()) {
+                    uris = parsed
+                }
+            } catch (_: Exception) {}
+            if (uris == null) {
+                if (data.clipData != null) {
+                    val count = data.clipData!!.itemCount
+                    val list = mutableListOf<Uri>()
+                    for (i in 0 until count) {
+                        list.add(data.clipData!!.getItemAt(i).uri)
+                    }
+                    uris = list.toTypedArray()
+                } else if (data.data != null) {
+                    uris = arrayOf(data.data!!)
+                }
+            }
+        }
+        filePathCallback?.onReceiveValue(uris)
         filePathCallback = null
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // جلوگیری از اسکرین‌شات و اسکرین رکورد
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
@@ -116,11 +137,21 @@ class MainActivity : AppCompatActivity() {
                 filePathCallback?.onReceiveValue(null)
                 filePathCallback = mFilePathCallback
                 try {
-                    val intent = mFileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
-                        addCategory(Intent.CATEGORY_OPENABLE); type = "*/*"
+                    val accept = mFileChooserParams?.acceptTypes?.firstOrNull { it.isNotBlank() } ?: "image/*"
+                    val multiple = mFileChooserParams?.mode == FileChooserParams.MODE_OPEN_MULTIPLE
+                    val contentIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = if (accept.contains("image")) "image/*" else "*/*"
+                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple)
+                        if (accept.isNotBlank()) putExtra(Intent.EXTRA_MIME_TYPES, arrayOf(accept))
                     }
-                    filePicker.launch(intent)
+                    val chooser = Intent(Intent.ACTION_CHOOSER).apply {
+                        putExtra(Intent.EXTRA_INTENT, contentIntent)
+                        putExtra(Intent.EXTRA_TITLE, "انتخاب تصویر")
+                    }
+                    filePicker.launch(chooser)
                 } catch (_: Exception) {
+                    filePathCallback?.onReceiveValue(null)
                     filePathCallback = null
                     return false
                 }

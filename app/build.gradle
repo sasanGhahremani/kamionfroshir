@@ -5,7 +5,7 @@ android {
     namespace "com.ghahremani.kamionfroshir"
     compileSdk 34
     defaultConfig {
-        applicationId "com.ghahremani.kamionfroshir"
+        applicationId "com.ghahremani.kamionfroshir2"
         minSdk 24
         targetSdk 34
        versionCode 3

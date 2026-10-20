@@ -18,26 +18,17 @@ jobs:
         run: |
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-      - name: Generate release keystore
-        run: |
-          if [ ! -f release.jks ]; then
-            keytool -genkeypair -v -keystore release.jks -alias kamion -keyalg RSA -keysize 2048 -validity 10000 -storepass kamion123 -keypass kamion123 -dname "CN=kamionfrosh, OU=IT, O=kamionfrosh, L=Tehran, S=Tehran, C=IR"
-          fi
-          ls -lh release.jks
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.jks
       - name: Build Release APK
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/release.jks
-          KEYSTORE_PASSWORD: kamion123
-          KEY_ALIAS: kamion
-          KEY_PASSWORD: kamion123
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: gradle assembleRelease --no-daemon --stacktrace
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: kamionfrosh-release
           path: app/build/outputs/apk/release/*.apk
-      - name: Upload Keystore (BACKUP - keep it safe)
-        uses: actions/upload-artifact@v4
-        with:
-          name: keystore-backup
-          path: release.jks

@@ -27,7 +27,7 @@
          android:layout_width="wrap_content"
          android:layout_height="wrap_content"
          android:layout_marginTop="16dp"
-         android:text="کامیون فروش در حال بارگذاری است..."
+         android:text=" نمایشگاه خودرو در حال بارگذاری است..."
          android:textSize="16sp"
          android:textColor="#555555"
          android:gravity="center" />

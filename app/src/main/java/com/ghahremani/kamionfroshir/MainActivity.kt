@@ -1,17 +1,25 @@
 package com.ghahremani.kamionfroshir
 
+import android.Manifest
 import android.app.DownloadManager
 import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
+import android.provider.Telephony
 import android.view.View
 import android.view.WindowManager
 import android.webkit.DownloadListener
+import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -25,6 +33,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,7 +44,38 @@ class MainActivity : AppCompatActivity() {
     private lateinit var errorText: TextView
     private lateinit var retryBtn: Button
     private lateinit var loadingLayout: LinearLayout
+
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
+
+    // ===== خواندن خودکار کد پیامک =====
+    private var smsReceiver: BroadcastReceiver? = null
+    private var pendingSmsCode: String? = null
+    private var waitingForSmsPermission = false
+    private var smsPermissionAsked = false
+    private val smsHandler = Handler(Looper.getMainLooper())
+    private val smsTimeout = Runnable {
+        stopSmsListening()
+        pendingSmsCode = null
+    }
+
+    private val smsPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted && waitingForSmsPermission) registerSmsReceiver()
+            waitingForSmsPermission = false
+        }
+
+    inner class SmsBridge {
+        @JavascriptInterface
+        fun start() { runOnUiThread { startSmsListening() } }
+
+        @JavascriptInterface
+        fun stop() {
+            runOnUiThread {
+                stopSmsListening()
+                pendingSmsCode = null
+            }
+        }
+    }
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (filePathCallback == null) return@registerForActivityResult
@@ -67,12 +107,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
         )
-
         setContentView(R.layout.activity_main)
         supportActionBar?.hide()
 
@@ -93,6 +131,8 @@ class MainActivity : AppCompatActivity() {
             cacheMode = WebSettings.LOAD_DEFAULT
         }
 
+        webView.addJavascriptInterface(SmsBridge(), "AndroidSms")
+
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url?.toString() ?: return false
@@ -109,12 +149,14 @@ class MainActivity : AppCompatActivity() {
                 }
                 return false
             }
+
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                 super.onPageStarted(view, url, favicon)
                 if (errorLayout.visibility != View.VISIBLE) {
                     loadingLayout.visibility = View.VISIBLE
                 }
             }
+
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 loadingLayout.visibility = View.GONE
@@ -122,6 +164,7 @@ class MainActivity : AppCompatActivity() {
                     webView.visibility = View.VISIBLE
                 }
             }
+
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                 super.onReceivedError(view, request, error)
                 if (request?.isForMainFrame == true) {
@@ -175,8 +218,96 @@ class MainActivity : AppCompatActivity() {
         })
 
         retryBtn.setOnClickListener { loadSite() }
+
         if (savedInstanceState != null) webView.restoreState(savedInstanceState) else loadSite()
     }
+
+    // ================= خواندن خودکار کد پیامک =================
+
+    private fun startSmsListening() {
+        // تمدید زمان شنود (۵ دقیقه)
+        smsHandler.removeCallbacks(smsTimeout)
+        smsHandler.postDelayed(smsTimeout, 5 * 60 * 1000L)
+
+        // اگر کدی قبلاً رسیده ولی صفحه هنوز آماده نبود، دوباره تحویل بده
+        pendingSmsCode?.let { deliverSmsCode(it) }
+
+        if (smsReceiver != null) return
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
+            == PackageManager.PERMISSION_GRANTED) {
+            registerSmsReceiver()
+        } else if (!smsPermissionAsked) {
+            smsPermissionAsked = true
+            waitingForSmsPermission = true
+            smsPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
+        }
+    }
+
+    private fun registerSmsReceiver() {
+        if (smsReceiver != null) return
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
+                val msgs = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
+                val body = msgs.joinToString("") { it.messageBody ?: "" }
+                val code = extractOtp(body) ?: return
+                pendingSmsCode = code
+                deliverSmsCode(code)
+            }
+        }
+        try {
+            registerReceiver(
+                receiver,
+                IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION),
+                Manifest.permission.BROADCAST_SMS,
+                null
+            )
+            smsReceiver = receiver
+        } catch (_: Exception) {}
+    }
+
+    private fun stopSmsListening() {
+        smsHandler.removeCallbacks(smsTimeout)
+        smsReceiver?.let { try { unregisterReceiver(it) } catch (_: Exception) {} }
+        smsReceiver = null
+    }
+
+    private fun normalizeText(s: String): String {
+        val sb = StringBuilder(s.length)
+        for (ch in s) {
+            when (ch) {
+                in '۰'..'۹' -> sb.append('0' + (ch - '۰'))
+                in '٠'..'٩' -> sb.append('0' + (ch - '٠'))
+                'ي' -> sb.append('ی')
+                'ك' -> sb.append('ک')
+                else -> sb.append(ch)
+            }
+        }
+        return sb.toString()
+    }
+
+    // نمونه پیامک: «کد تایید شما در کامیون فروش 96333لغو11»
+    private fun extractOtp(body: String): String? {
+        val text = normalizeText(body)
+        if (!text.contains("کامیون فروش")) return null
+        return Regex("(?<!\\d)(\\d{5})(?!\\d)").find(text)?.groupValues?.get(1)
+    }
+
+    private fun deliverSmsCode(code: String) {
+        val host = try { Uri.parse(webView.url ?: return).host } catch (_: Exception) { null } ?: return
+        if (host != "kamionfrosh.ir" && !host.endsWith(".kamionfrosh.ir")) return
+        webView.evaluateJavascript(
+            "(function(){return !!(window.onSmsCodeReceived && window.onSmsCodeReceived('$code'));})()"
+        ) { res ->
+            if (res == "true") {
+                pendingSmsCode = null
+                stopSmsListening()
+            }
+        }
+    }
+
+    // ===========================================================
 
     private fun loadSite() {
         if (!isInternetAvailable()) {
@@ -189,16 +320,19 @@ class MainActivity : AppCompatActivity() {
         loadingLayout.visibility = View.VISIBLE
         webView.loadUrl(SITE_URL)
     }
+
     private fun showError(msg: String) {
         webView.visibility = View.GONE
         loadingLayout.visibility = View.GONE
         errorLayout.visibility = View.VISIBLE
         errorText.text = msg
     }
+
     private fun hideError() {
         errorLayout.visibility = View.GONE
         webView.visibility = View.VISIBLE
     }
+
     private fun isInternetAvailable(): Boolean {
         val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
         val net = cm.activeNetwork ?: return false
@@ -207,12 +341,19 @@ class MainActivity : AppCompatActivity() {
                 cap.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
                 cap.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
     }
+
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (::webView.isInitialized && webView.canGoBack()) webView.goBack() else super.onBackPressed()
     }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         webView.saveState(outState)
+    }
+
+    override fun onDestroy() {
+        stopSmsListening()
+        super.onDestroy()
     }
 }

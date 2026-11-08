@@ -1,13 +1,12 @@
 package com.ghahremani.kamionfroshir
 
-import android.Manifest
+import android.app.Activity
 import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -15,7 +14,6 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
-import android.provider.Telephony
 import android.view.View
 import android.view.WindowManager
 import android.webkit.DownloadListener
@@ -36,6 +34,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.google.android.gms.auth.api.phone.SmsRetriever
+import com.google.android.gms.common.api.CommonStatusCodes
+import com.google.android.gms.common.api.Status
 
 class MainActivity : AppCompatActivity() {
 
@@ -49,22 +50,28 @@ class MainActivity : AppCompatActivity() {
 
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
-    // ===== خواندن خودکار کد پیامک =====
+    // ===== خواندن خودکار کد پیامک (SMS User Consent) =====
     private var smsReceiver: BroadcastReceiver? = null
     private var pendingSmsCode: String? = null
-    private var waitingForSmsPermission = false
-    private var smsPermissionAsked = false
     private val smsHandler = Handler(Looper.getMainLooper())
     private val smsTimeout = Runnable {
         stopSmsListening()
         pendingSmsCode = null
     }
 
-    private val smsPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            ErrorReporter.log("sms_debug", "permission granted=$granted", null, null)
-            if (granted && waitingForSmsPermission) registerSmsReceiver()
-            waitingForSmsPermission = false
+    // نتیجه‌ی دیالوگ تأییدی که اندروید به کاربر نشان می‌دهد
+    private val consentLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            ErrorReporter.log("sms_debug", "consent result=${result.resultCode}", null, null)
+            if (result.resultCode == Activity.RESULT_OK) {
+                val body = result.data?.getStringExtra(SmsRetriever.EXTRA_SMS_MESSAGE)
+                val code = if (body != null) extractOtp(body) else null
+                ErrorReporter.log("sms_debug", "consent body len=${body?.length} matched=${code != null}", null, null)
+                if (code != null) {
+                    pendingSmsCode = code
+                    deliverSmsCode(code)
+                }
+            }
         }
 
     inner class SmsBridge {
@@ -250,9 +257,7 @@ class MainActivity : AppCompatActivity() {
     // ================= خواندن خودکار کد پیامک =================
 
     private fun startSmsListening() {
-        val hasPerm = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) ==
-                PackageManager.PERMISSION_GRANTED
-        ErrorReporter.log("sms_debug", "start called permission=$hasPerm receiverActive=${smsReceiver != null}", null, null)
+        ErrorReporter.log("sms_debug", "start called receiverActive=${smsReceiver != null}", null, null)
 
         // تمدید زمان شنود (۵ دقیقه)
         smsHandler.removeCallbacks(smsTimeout)
@@ -261,14 +266,15 @@ class MainActivity : AppCompatActivity() {
         // اگر کدی قبلاً رسیده ولی صفحه هنوز آماده نبود، دوباره تحویل بده
         pendingSmsCode?.let { deliverSmsCode(it) }
 
-        if (smsReceiver != null) return
+        registerSmsReceiver()
 
-        if (hasPerm) {
-            registerSmsReceiver()
-        } else if (!smsPermissionAsked) {
-            smsPermissionAsked = true
-            waitingForSmsPermission = true
-            smsPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
+        // هر بار که start صدا زده شود، شنود جدید (برای یک پیامک) شروع می‌شود
+        try {
+            SmsRetriever.getClient(this).startSmsUserConsent(null)
+                .addOnSuccessListener { ErrorReporter.log("sms_debug", "consent listening", null, null) }
+                .addOnFailureListener { ErrorReporter.log("sms_debug", "consent start FAILED: ${it.message}", null, null) }
+        } catch (e: Exception) {
+            ErrorReporter.log("sms_debug", "consent exception: ${e.message}", null, null)
         }
     }
 
@@ -276,24 +282,25 @@ class MainActivity : AppCompatActivity() {
         if (smsReceiver != null) return
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
-                val msgs = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
-                val body = msgs.joinToString("") { it.messageBody ?: "" }
-                val code = extractOtp(body)
-                ErrorReporter.log("sms_debug", "sms received len=${body.length} matched=${code != null}", null, null)
-                if (code == null) return
-                pendingSmsCode = code
-                deliverSmsCode(code)
+                if (intent?.action != SmsRetriever.SMS_RETRIEVED_ACTION) return
+                val extras = intent.extras ?: return
+                val status = extras.get(SmsRetriever.EXTRA_STATUS) as? Status ?: return
+                ErrorReporter.log("sms_debug", "onReceive statusCode=${status.statusCode}", null, null)
+                if (status.statusCode == CommonStatusCodes.SUCCESS) {
+                    val consentIntent = extras.getParcelable<Intent>(SmsRetriever.EXTRA_CONSENT_INTENT)
+                    if (consentIntent != null) {
+                        try { consentLauncher.launch(consentIntent) }
+                        catch (e: Exception) { ErrorReporter.log("sms_debug", "launch FAILED: ${e.message}", null, null) }
+                    }
+                }
             }
         }
         try {
-            val filter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
-            filter.priority = 999
             ContextCompat.registerReceiver(
                 this,
                 receiver,
-                filter,
-                Manifest.permission.BROADCAST_SMS,
+                IntentFilter(SmsRetriever.SMS_RETRIEVED_ACTION),
+                SmsRetriever.SEND_PERMISSION,
                 null,
                 ContextCompat.RECEIVER_EXPORTED
             )
@@ -328,8 +335,6 @@ class MainActivity : AppCompatActivity() {
     // نمونه پیامک: «کد تایید شما در کامیون فروش 96333لغو11»
     private fun extractOtp(body: String): String? {
         val text = normalizeText(body)
-        val looksLikeOurs = text.contains("کامیون") || text.contains("کد تایید") || text.contains("کد تأیید")
-        if (!looksLikeOurs) return null
         return Regex("(?<!\\d)(\\d{5})(?!\\d)").find(text)?.groupValues?.get(1)
     }
 

@@ -20,6 +20,7 @@ import android.view.View
 import android.view.WindowManager
 import android.webkit.DownloadListener
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -32,6 +33,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 
@@ -107,6 +109,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ErrorReporter.init(this)
+        ErrorReporter.onAppStart(savedInstanceState != null)
+
         window.setFlags(
             WindowManager.LayoutParams.FLAG_SECURE,
             WindowManager.LayoutParams.FLAG_SECURE
@@ -152,6 +157,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                ErrorReporter.currentUrl = url
                 if (errorLayout.visibility != View.VISIBLE) {
                     loadingLayout.visibility = View.VISIBLE
                 }
@@ -165,9 +171,16 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            @RequiresApi(26)
+            override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                ErrorReporter.log("renderer_gone", "didCrash=${detail?.didCrash()}", null, view?.url)
+                return false
+            }
+
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                 super.onReceivedError(view, request, error)
                 if (request?.isForMainFrame == true) {
+                    ErrorReporter.log("web_error", "${error?.errorCode} ${error?.description}", null, request.url?.toString())
                     loadingLayout.visibility = View.GONE
                     if (!isInternetAvailable()) showError("اتصال اینترنتی ندارید")
                     else showError("این صفحه در دسترس نیست")
@@ -350,6 +363,17 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         webView.saveState(outState)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        ErrorReporter.markStopped()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        // 15 = حافظه بحرانی، 40 به بالا = برنامه در پس‌زمینه و در خطر بسته شدن
+        if (level == 15 || level >= 40) ErrorReporter.log("memory_trim", "level=$level", null, null)
     }
 
     override fun onDestroy() {

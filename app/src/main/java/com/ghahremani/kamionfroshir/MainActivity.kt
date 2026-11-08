@@ -62,6 +62,7 @@ class MainActivity : AppCompatActivity() {
 
     private val smsPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            ErrorReporter.log("sms_debug", "permission granted=$granted", null, null)
             if (granted && waitingForSmsPermission) registerSmsReceiver()
             waitingForSmsPermission = false
         }
@@ -124,6 +125,10 @@ class MainActivity : AppCompatActivity() {
         errorText = findViewById(R.id.errorText)
         retryBtn = findViewById(R.id.retryBtn)
         loadingLayout = findViewById(R.id.loadingLayout)
+
+        // رفع کرش TransactionTooLargeException
+        webView.isSaveEnabled = false
+        webView.isSaveFromParentEnabled = false
 
         webView.settings.apply {
             javaScriptEnabled = true
@@ -232,12 +237,23 @@ class MainActivity : AppCompatActivity() {
 
         retryBtn.setOnClickListener { loadSite() }
 
-        if (savedInstanceState != null) webView.restoreState(savedInstanceState) else loadSite()
+        // به‌جای restoreState (که باعث کرش می‌شد) فقط آخرین آدرس را باز می‌کنیم
+        val lastUrl = savedInstanceState?.getString("lastUrl")
+        if (lastUrl != null && lastUrl.startsWith(SITE_URL)) {
+            hideError()
+            webView.loadUrl(lastUrl)
+        } else {
+            loadSite()
+        }
     }
 
     // ================= خواندن خودکار کد پیامک =================
 
     private fun startSmsListening() {
+        val hasPerm = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) ==
+                PackageManager.PERMISSION_GRANTED
+        ErrorReporter.log("sms_debug", "start called permission=$hasPerm receiverActive=${smsReceiver != null}", null, null)
+
         // تمدید زمان شنود (۵ دقیقه)
         smsHandler.removeCallbacks(smsTimeout)
         smsHandler.postDelayed(smsTimeout, 5 * 60 * 1000L)
@@ -247,8 +263,7 @@ class MainActivity : AppCompatActivity() {
 
         if (smsReceiver != null) return
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
-            == PackageManager.PERMISSION_GRANTED) {
+        if (hasPerm) {
             registerSmsReceiver()
         } else if (!smsPermissionAsked) {
             smsPermissionAsked = true
@@ -264,20 +279,29 @@ class MainActivity : AppCompatActivity() {
                 if (intent?.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
                 val msgs = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
                 val body = msgs.joinToString("") { it.messageBody ?: "" }
-                val code = extractOtp(body) ?: return
+                val code = extractOtp(body)
+                ErrorReporter.log("sms_debug", "sms received len=${body.length} matched=${code != null}", null, null)
+                if (code == null) return
                 pendingSmsCode = code
                 deliverSmsCode(code)
             }
         }
         try {
-            registerReceiver(
+            val filter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
+            filter.priority = 999
+            ContextCompat.registerReceiver(
+                this,
                 receiver,
-                IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION),
+                filter,
                 Manifest.permission.BROADCAST_SMS,
-                null
+                null,
+                ContextCompat.RECEIVER_EXPORTED
             )
             smsReceiver = receiver
-        } catch (_: Exception) {}
+            ErrorReporter.log("sms_debug", "receiver registered", null, null)
+        } catch (e: Exception) {
+            ErrorReporter.log("sms_debug", "register FAILED: ${e.message}", null, null)
+        }
     }
 
     private fun stopSmsListening() {
@@ -294,6 +318,7 @@ class MainActivity : AppCompatActivity() {
                 in '٠'..'٩' -> sb.append('0' + (ch - '٠'))
                 'ي' -> sb.append('ی')
                 'ك' -> sb.append('ک')
+                '\u200c', '\u200f', '\u200e', '\u00a0' -> sb.append(' ')
                 else -> sb.append(ch)
             }
         }
@@ -303,7 +328,8 @@ class MainActivity : AppCompatActivity() {
     // نمونه پیامک: «کد تایید شما در کامیون فروش 96333لغو11»
     private fun extractOtp(body: String): String? {
         val text = normalizeText(body)
-        if (!text.contains("کامیون فروش")) return null
+        val looksLikeOurs = text.contains("کامیون") || text.contains("کد تایید") || text.contains("کد تأیید")
+        if (!looksLikeOurs) return null
         return Regex("(?<!\\d)(\\d{5})(?!\\d)").find(text)?.groupValues?.get(1)
     }
 
@@ -313,6 +339,7 @@ class MainActivity : AppCompatActivity() {
         webView.evaluateJavascript(
             "(function(){return !!(window.onSmsCodeReceived && window.onSmsCodeReceived('$code'));})()"
         ) { res ->
+            ErrorReporter.log("sms_debug", "deliver result=$res", null, null)
             if (res == "true") {
                 pendingSmsCode = null
                 stopSmsListening()
@@ -362,7 +389,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        webView.saveState(outState)
+        // فقط آدرس را ذخیره می‌کنیم، نه state کامل وب‌ویو
+        outState.putString("lastUrl", webView.url)
     }
 
     override fun onStop() {

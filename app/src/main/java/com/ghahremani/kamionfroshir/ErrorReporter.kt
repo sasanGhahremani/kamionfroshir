@@ -39,16 +39,25 @@ object ErrorReporter {
     }
 
     // هنگام باز شدن برنامه صدا زده شود
-    fun onAppStart(freshStart: Boolean) {
+        private var processReported = false
+
+    // هنگام باز شدن برنامه صدا زده شود. restored = آیا اندروید وضعیت ذخیره‌شده را برگردانده؟
+    fun onAppStart(restored: Boolean) {
         val c = ctx ?: return
         try {
-            val sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            val last = sp.getLong(KEY_LAST_STOP, 0L)
-            if (freshStart && last > 0L) {
-                val gap = (System.currentTimeMillis() - last) / 1000
-                if (gap < 30 * 60) enqueue("restart_after_background", "gap=${gap}s", null, null)
+            // فقط یک بار برای هر اجرای برنامه (نه با هر چرخش صفحه)
+            if (!processReported) {
+                processReported = true
+                val sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                val last = sp.getLong(KEY_LAST_STOP, 0L)
+                if (last > 0L) {
+                    val gap = (System.currentTimeMillis() - last) / 1000
+                    if (gap < 30 * 60) {
+                        enqueue("restart_after_background", "gap=${gap}s restoredState=$restored", null, null)
+                    }
+                }
+                logLastExit(c)
             }
-            logLastExit(c)
         } catch (_: Throwable) {}
         flush()
     }

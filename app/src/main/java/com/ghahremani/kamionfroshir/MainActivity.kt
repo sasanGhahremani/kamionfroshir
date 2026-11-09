@@ -1,5 +1,6 @@
 package com.ghahremani.kamionfroshir
 
+import android.Manifest
 import android.app.Activity
 import android.app.DownloadManager
 import android.content.ActivityNotFoundException
@@ -7,6 +8,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -14,15 +16,22 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.ContactsContract
+import android.provider.ContactsContract.CommonDataKinds.Email
+import android.provider.ContactsContract.CommonDataKinds.Organization
+import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.view.View
 import android.view.WindowManager
+import android.webkit.CookieManager
 import android.webkit.DownloadListener
 import android.webkit.JavascriptInterface
 import android.webkit.RenderProcessGoneDetail
+import android.webkit.URLUtil
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -37,6 +46,8 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
+import org.json.JSONArray
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
 
@@ -49,6 +60,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var loadingLayout: LinearLayout
 
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private var showingOffline = false
 
     // ===== خواندن خودکار کد پیامک (SMS User Consent) =====
     private var smsReceiver: BroadcastReceiver? = null
@@ -59,7 +71,17 @@ class MainActivity : AppCompatActivity() {
         pendingSmsCode = null
     }
 
-    // نتیجه‌ی دیالوگ تأییدی که اندروید به کاربر نشان می‌دهد
+    // ===== همگام‌سازی مخاطبین =====
+    @Volatile private var contactsSyncRunning = false
+
+    private class DevContact(val id: Long) {
+        var name: String = ""
+        var company: String? = null
+        var email: String? = null
+        var updated: Long = 0L
+        val phones = ArrayList<Pair<String, String>>()
+    }
+
     private val consentLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             ErrorReporter.log("sms_debug", "consent result=${result.resultCode}", null, null)
@@ -74,6 +96,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+    private val contactsPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            ErrorReporter.log("contacts_debug", "permission granted=$granted", null, null)
+            if (granted) readContactsAndSend()
+            else runJs("window.pbDeviceDenied && window.pbDeviceDenied()")
+        }
+
     inner class SmsBridge {
         @JavascriptInterface
         fun start() { runOnUiThread { startSmsListening() } }
@@ -85,6 +114,16 @@ class MainActivity : AppCompatActivity() {
                 pendingSmsCode = null
             }
         }
+    }
+
+    inner class AppBridge {
+        @JavascriptInterface
+        fun retry() { runOnUiThread { loadSite() } }
+    }
+
+    inner class ContactsBridge {
+        @JavascriptInterface
+        fun start() { runOnUiThread { startContactsSync() } }
     }
 
     private val filePicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -149,6 +188,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         webView.addJavascriptInterface(SmsBridge(), "AndroidSms")
+        webView.addJavascriptInterface(AppBridge(), "AndroidApp")
+        webView.addJavascriptInterface(ContactsBridge(), "AndroidContacts")
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -193,9 +234,22 @@ class MainActivity : AppCompatActivity() {
                 super.onReceivedError(view, request, error)
                 if (request?.isForMainFrame == true) {
                     ErrorReporter.log("web_error", "${error?.errorCode} ${error?.description}", null, request.url?.toString())
+                    if (showingOffline) return
                     loadingLayout.visibility = View.GONE
                     if (!isInternetAvailable()) showError("اتصال اینترنتی ندارید")
-                    else showError("این صفحه در دسترس نیست")
+                    else showOfflinePage()
+                }
+            }
+
+            override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest?, errorResponse: WebResourceResponse?) {
+                super.onReceivedHttpError(view, request, errorResponse)
+                if (request?.isForMainFrame == true && !showingOffline) {
+                    val code = errorResponse?.statusCode ?: 0
+                    // 502/503/504 یعنی سرور پایین است یا در حال بروزرسانی
+                    if (code == 502 || code == 503 || code == 504) {
+                        ErrorReporter.log("web_http_error", "status=$code", null, request.url?.toString())
+                        showOfflinePage()
+                    }
                 }
             }
         }
@@ -205,17 +259,20 @@ class MainActivity : AppCompatActivity() {
                 filePathCallback?.onReceiveValue(null)
                 filePathCallback = mFilePathCallback
                 try {
-                    val accept = mFileChooserParams?.acceptTypes?.firstOrNull { it.isNotBlank() } ?: "image/*"
+                    val accepts = mFileChooserParams?.acceptTypes?.filter { it.isNotBlank() } ?: emptyList()
+                    val joined = accepts.joinToString(",").lowercase()
+                    val wantsVcard = joined.contains("vcf") || joined.contains("vcard")
+                    val wantsImage = accepts.isEmpty() || joined.contains("image")
                     val multiple = mFileChooserParams?.mode == FileChooserParams.MODE_OPEN_MULTIPLE
                     val contentIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
                         addCategory(Intent.CATEGORY_OPENABLE)
-                        type = if (accept.contains("image")) "image/*" else "*/*"
+                        type = if (!wantsVcard && wantsImage) "image/*" else "*/*"
                         putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple)
-                        if (accept.isNotBlank()) putExtra(Intent.EXTRA_MIME_TYPES, arrayOf(accept))
+                        if (!wantsVcard && wantsImage) putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*"))
                     }
                     val chooser = Intent(Intent.ACTION_CHOOSER).apply {
                         putExtra(Intent.EXTRA_INTENT, contentIntent)
-                        putExtra(Intent.EXTRA_TITLE, "انتخاب تصویر")
+                        putExtra(Intent.EXTRA_TITLE, if (wantsVcard) "انتخاب فایل مخاطبین" else "انتخاب تصویر")
                     }
                     filePicker.launch(chooser)
                 } catch (_: Exception) {
@@ -229,12 +286,14 @@ class MainActivity : AppCompatActivity() {
 
         webView.setDownloadListener(DownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
             try {
+                val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType)
                 val req = DownloadManager.Request(Uri.parse(url))
                 req.setMimeType(mimeType)
                 req.addRequestHeader("User-Agent", userAgent)
-                req.setTitle("kamionfrosh download")
+                CookieManager.getInstance().getCookie(url)?.let { req.addRequestHeader("Cookie", it) }
+                req.setTitle(fileName)
                 req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "kamionfrosh_" + System.currentTimeMillis())
+                req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
                 (getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
                 Toast.makeText(this, "دانلود شروع شد", Toast.LENGTH_SHORT).show()
             } catch (_: Exception) {
@@ -254,21 +313,133 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ================= کمکی =================
+
+    private fun runJs(js: String) {
+        runOnUiThread {
+            try { webView.evaluateJavascript(js, null) } catch (_: Exception) {}
+        }
+    }
+
+    private fun isOurSite(): Boolean {
+        val host = try { Uri.parse(webView.url ?: return false).host } catch (_: Exception) { null } ?: return false
+        return host == "kamionfrosh.ir" || host.endsWith(".kamionfrosh.ir")
+    }
+
+    // ================= همگام‌سازی مخاطبین =================
+
+    private fun startContactsSync() {
+        // فقط از صفحات خود سایت پذیرفته می‌شود
+        if (!isOurSite()) return
+        val has = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) ==
+                PackageManager.PERMISSION_GRANTED
+        ErrorReporter.log("contacts_debug", "start permission=$has", null, null)
+        if (has) readContactsAndSend()
+        else contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)   // تنها جایی که مجوز پرسیده می‌شود
+    }
+
+    private fun readContactsAndSend() {
+        if (contactsSyncRunning) return
+        contactsSyncRunning = true
+        Thread {
+            try {
+                val map = LinkedHashMap<Long, DevContact>()
+                val projection = arrayOf(
+                    ContactsContract.Data.CONTACT_ID,
+                    ContactsContract.Data.DISPLAY_NAME,
+                    ContactsContract.Data.MIMETYPE,
+                    ContactsContract.Data.DATA1,
+                    ContactsContract.Data.DATA2,
+                    ContactsContract.Data.DATA3,
+                    ContactsContract.Data.CONTACT_LAST_UPDATED_TIMESTAMP
+                )
+                val selection = ContactsContract.Data.MIMETYPE + " IN (?,?,?)"
+                val args = arrayOf(Phone.CONTENT_ITEM_TYPE, Email.CONTENT_ITEM_TYPE, Organization.CONTENT_ITEM_TYPE)
+
+                contentResolver.query(
+                    ContactsContract.Data.CONTENT_URI, projection, selection, args,
+                    ContactsContract.Data.CONTACT_ID + " ASC"
+                )?.use { c ->
+                    while (c.moveToNext()) {
+                        val cid = c.getLong(0)
+                        val dc = map.getOrPut(cid) { DevContact(cid) }
+                        if (dc.name.isEmpty()) dc.name = (c.getString(1) ?: "").trim()
+                        val ts = c.getLong(6)
+                        if (ts > dc.updated) dc.updated = ts
+                        val d1 = (c.getString(3) ?: "").trim()
+                        if (d1.isEmpty()) continue
+                        when (c.getString(2)) {
+                            Phone.CONTENT_ITEM_TYPE -> {
+                                val label = when (c.getInt(4)) {
+                                    Phone.TYPE_MOBILE -> "mobile"
+                                    Phone.TYPE_HOME -> "home"
+                                    Phone.TYPE_WORK -> "work"
+                                    Phone.TYPE_CUSTOM -> (c.getString(5) ?: "").trim()
+                                    else -> ""
+                                }
+                                dc.phones.add(Pair(d1, label))
+                            }
+                            Email.CONTENT_ITEM_TYPE -> if (dc.email == null) dc.email = d1
+                            Organization.CONTENT_ITEM_TYPE -> if (dc.company == null) dc.company = d1
+                        }
+                    }
+                }
+
+                // فقط مخاطبینی که حداقل یک شماره دارند
+                val list = map.values.filter { it.phones.isNotEmpty() }
+                ErrorReporter.log("contacts_debug", "read total=${list.size}", null, null)
+
+                if (list.isEmpty()) {
+                    runJs("alert('مخاطبی با شماره‌ی تلفن در گوشی پیدا نشد.')")
+                    return@Thread
+                }
+
+                runJs("window.pbDeviceBegin && window.pbDeviceBegin(" + list.size + ")")
+
+                for (chunk in list.chunked(50)) {
+                    val arr = JSONArray()
+                    for (dc in chunk) {
+                        val o = JSONObject()
+                        o.put("DisplayName", dc.name)
+                        o.put("DeviceContactId", dc.id.toString())
+                        if (dc.updated > 0) o.put("DeviceLastUpdated", dc.updated)
+                        dc.company?.let { o.put("Company", it) }
+                        dc.email?.let { o.put("Email", it) }
+                        val ph = JSONArray()
+                        for (p in dc.phones) {
+                            val po = JSONObject()
+                            po.put("Number", p.first)
+                            po.put("Label", p.second)
+                            ph.put(po)
+                        }
+                        o.put("Phones", ph)
+                        arr.put(o)
+                    }
+                    runJs("window.pbDeviceChunk && window.pbDeviceChunk(" + JSONObject.quote(arr.toString()) + ")")
+                }
+
+                runJs("window.pbDeviceEnd && window.pbDeviceEnd()")
+            } catch (e: Exception) {
+                ErrorReporter.log("contacts_debug", "read FAILED: ${e.message}", null, null)
+                runJs("window.pbDeviceEnd && window.pbDeviceEnd()")
+            } finally {
+                contactsSyncRunning = false
+            }
+        }.start()
+    }
+
     // ================= خواندن خودکار کد پیامک =================
 
     private fun startSmsListening() {
         ErrorReporter.log("sms_debug", "start called receiverActive=${smsReceiver != null}", null, null)
 
-        // تمدید زمان شنود (۵ دقیقه)
         smsHandler.removeCallbacks(smsTimeout)
         smsHandler.postDelayed(smsTimeout, 5 * 60 * 1000L)
 
-        // اگر کدی قبلاً رسیده ولی صفحه هنوز آماده نبود، دوباره تحویل بده
         pendingSmsCode?.let { deliverSmsCode(it) }
 
         registerSmsReceiver()
 
-        // هر بار که start صدا زده شود، شنود جدید (برای یک پیامک) شروع می‌شود
         try {
             SmsRetriever.getClient(this).startSmsUserConsent(null)
                 .addOnSuccessListener { ErrorReporter.log("sms_debug", "consent listening", null, null) }
@@ -332,7 +503,6 @@ class MainActivity : AppCompatActivity() {
         return sb.toString()
     }
 
-    // نمونه پیامک: «کد تایید شما در کامیون فروش 96333لغو11»
     private fun extractOtp(body: String): String? {
         val text = normalizeText(body)
         return Regex("(?<!\\d)(\\d{5})(?!\\d)").find(text)?.groupValues?.get(1)
@@ -360,6 +530,7 @@ class MainActivity : AppCompatActivity() {
             showError("اتصال اینترنتی ندارید")
             return
         }
+        showingOffline = false
         hideError()
         webView.visibility = View.GONE
         loadingLayout.visibility = View.VISIBLE
@@ -371,6 +542,14 @@ class MainActivity : AppCompatActivity() {
         loadingLayout.visibility = View.GONE
         errorLayout.visibility = View.VISIBLE
         errorText.text = msg
+    }
+
+    private fun showOfflinePage() {
+        showingOffline = true
+        errorLayout.visibility = View.GONE
+        loadingLayout.visibility = View.GONE
+        webView.visibility = View.VISIBLE
+        webView.loadUrl("file:///android_asset/offline.html")
     }
 
     private fun hideError() {
@@ -389,7 +568,7 @@ class MainActivity : AppCompatActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (::webView.isInitialized && webView.canGoBack()) webView.goBack() else super.onBackPressed()
+        if (::webView.isInitialized && webView.canGoBack() && !showingOffline) webView.goBack() else super.onBackPressed()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -405,7 +584,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        // 15 = حافظه بحرانی، 40 به بالا = برنامه در پس‌زمینه و در خطر بسته شدن
         if (level == 15 || level >= 40) ErrorReporter.log("memory_trim", "level=$level", null, null)
     }
 

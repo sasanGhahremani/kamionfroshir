@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>در حال بروزرسانی</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#ffffff; --text:#1f2937; --muted:#6b7280; --accent:#2563eb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111827; --card:#1f2937; --text:#f3f4f6; --muted:#9ca3af; --accent:#60a5fa; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         background:var(--bg); color:var(--text); font-family:Tahoma, Arial, sans-serif; padding:16px; }
+  .card { background:var(--card); max-width:480px; width:100%; border-radius:16px; padding:28px 22px;
+          text-align:center; box-shadow:0 4px 20px rgba(0,0,0,.08); }
+  .icon { font-size:56px; }
+  h1 { font-size:1.1rem; line-height:2; margin:12px 0; }
+  p { color:var(--muted); line-height:2; margin:10px 0; font-size:.95rem; }
+  .contact { margin-top:18px; padding-top:14px; border-top:1px solid rgba(128,128,128,.25);
+             font-size:.95rem; line-height:2.4; }
+  .contact a { color:var(--accent); text-decoration:none; font-weight:bold; }
+  button { margin-top:18px; width:100%; padding:12px; border:0; border-radius:10px;
+           background:var(--accent); color:#fff; font-size:1rem; display:none; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🛠️</div>
+    <h1>برنامه در حال بروزرسانی است و ممکن است مدتی ادامه‌دار باشد. لطفاً در فرصتی دیگر مجدداً تلاش کنید.</h1>
+    <p>مجموعه‌ی نمایشگاه خودرو در تلاش است در اولین فرصت ممکن برنامه را برای ادامه‌ی فعالیت شما آماده و در دسترس قرار دهد.</p>
+    <div class="contact">
+      ایمیل ما:<br><a href="mailto:Sa_project@yahoo.com">Sa_project@yahoo.com</a><br>
+      شماره‌ی پشتیبانی:<br><a href="tel:09121399458">09121399458</a>
+    </div>
+    <button id="retry" onclick="window.AndroidApp && AndroidApp.retry()">تلاش مجدد</button>
+  </div>
+  <script>
+    if (window.AndroidApp) document.getElementById('retry').style.display = 'block';
+  </script>
+</body>
+</html>

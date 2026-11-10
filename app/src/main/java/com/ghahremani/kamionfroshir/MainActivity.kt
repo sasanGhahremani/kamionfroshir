@@ -167,6 +167,7 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.hide()
 
         webView = findViewById(R.id.webView)
+        CookieManager.getInstance().setAcceptCookie(true)
         errorLayout = findViewById(R.id.errorLayout)
         errorText = findViewById(R.id.errorText)
         retryBtn = findViewById(R.id.retryBtn)

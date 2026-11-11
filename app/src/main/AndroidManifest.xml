@@ -15,6 +15,9 @@
         android:roundIcon="@drawable/ic_launcher"
         android:theme="@style/Theme.Kamionfrosh">
         <activity
+    android:name=".OfflineActivity"
+    android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout|uiMode">

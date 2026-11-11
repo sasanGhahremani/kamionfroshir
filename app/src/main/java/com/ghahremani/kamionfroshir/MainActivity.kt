@@ -313,7 +313,13 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        retryBtn.setOnClickListener { loadSite() }
+        retryBtn.setOnClickListener {
+    if (isInternetAvailable()) {
+        loadSite()
+    } else {
+        openOfflineWorkspace()
+    }
+}
 
         // به‌جای restoreState (که باعث کرش می‌شد) فقط آخرین آدرس را باز می‌کنیم
         val lastUrl = savedInstanceState?.getString("lastUrl")
@@ -638,10 +644,15 @@ private fun prepareOfflineEntry() {
 }
     private fun loadSite() {
         if (!isInternetAvailable()) {
-            loadingLayout.visibility = View.GONE
-            showError("اتصال اینترنتی ندارید")
-            return
-        }
+    loadingLayout.visibility = View.GONE
+    showError(
+        "اتصال اینترنتی ندارید؛ برای ورود به دفتر آفلاین دکمه را بزنید."
+    )
+    retryBtn.text = "ورود به دفتر آفلاین"
+    return
+}
+
+retryBtn.text = "تلاش مجدد"
         showingOffline = false
         hideError()
         webView.visibility = View.GONE

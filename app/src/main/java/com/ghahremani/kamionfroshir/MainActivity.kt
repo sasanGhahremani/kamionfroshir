@@ -524,7 +524,107 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ===========================================================
+private fun openOfflineWorkspace() {
+    val uid = getSharedPreferences(
+        "offline_workspace",
+        Context.MODE_PRIVATE
+    ).getString("lastUserId", "") ?: ""
 
+    if (!uid.matches(Regex("[1-9][0-9]*"))) {
+        Toast.makeText(
+            this,
+            "برای فعال شدن دفتر آفلاین، ابتدا با اینترنت وارد حساب شوید.",
+            Toast.LENGTH_LONG
+        ).show()
+        return
+    }
+
+    startActivity(
+        Intent(this, OfflineActivity::class.java)
+            .putExtra("ownerId", uid)
+    )
+}
+
+private fun prepareOfflineEntry() {
+    if (!isOurSite()) return
+
+    val current = Uri.parse(webView.url ?: return)
+
+    // هنگام خروج، حساب فعال دفتر آفلاین را پاک می‌کنیم.
+    if (
+        current.path?.trimEnd('/')
+            ?.equals("/Account/Logout", ignoreCase = true) == true
+    ) {
+        getSharedPreferences(
+            "offline_workspace",
+            Context.MODE_PRIVATE
+        ).edit().remove("lastUserId").apply()
+
+        return
+    }
+
+    webView.evaluateJavascript(
+        """
+        (function () {
+            try {
+                return localStorage.getItem('UserId') || '';
+            } catch (_) {
+                return '';
+            }
+        })();
+        """.trimIndent()
+    ) { raw ->
+        if (!isOurSite()) return@evaluateJavascript
+
+        val uid = try {
+            JSONArray("[$raw]").optString(0, "")
+        } catch (_: Exception) {
+            ""
+        }
+
+        val prefs = getSharedPreferences(
+            "offline_workspace",
+            Context.MODE_PRIVATE
+        )
+
+        if (!uid.matches(Regex("[1-9][0-9]*"))) {
+            prefs.edit().remove("lastUserId").apply()
+
+            webView.evaluateJavascript(
+                "document.getElementById('app-offline-entry')?.remove();",
+                null
+            )
+
+            return@evaluateJavascript
+        }
+
+        prefs.edit().putString("lastUserId", uid).apply()
+
+        webView.evaluateJavascript(
+            """
+            (function () {
+                if (!document.body) return;
+                if (document.getElementById('app-offline-entry')) return;
+
+                var a = document.createElement('a');
+                a.id = 'app-offline-entry';
+                a.href = 'kamionoffline://open';
+                a.textContent = 'دفتر آفلاین';
+
+                a.style.cssText =
+                    'position:fixed;left:12px;bottom:85px;' +
+                    'z-index:2000;background:#142640;color:#fff;' +
+                    'padding:10px 14px;border-radius:24px;' +
+                    'font:13px Tahoma;text-decoration:none;' +
+                    'box-shadow:0 3px 12px #0003';
+
+                document.body.appendChild(a);
+            })();
+            """.trimIndent(),
+            null
+        )
+    }
+}
     private fun loadSite() {
         if (!isInternetAvailable()) {
             loadingLayout.visibility = View.GONE

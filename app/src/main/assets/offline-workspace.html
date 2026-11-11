@@ -1,535 +1,791 @@
 <!doctype html>
 <html lang="fa" dir="rtl">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport"
-          content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline';
+               style-src 'unsafe-inline'; img-src 'none';
+               connect-src 'none'; form-action 'none';
+               base-uri 'none'; object-src 'none'; frame-src 'none'">
+<title>دفتر آفلاین کامیون‌فروش</title>
 
-    <meta http-equiv="Content-Security-Policy"
-          content="default-src 'none'; script-src 'unsafe-inline';
-                   style-src 'unsafe-inline'; img-src 'none';
-                   connect-src 'none'; form-action 'none';
-                   base-uri 'none'">
-
-    <title>دفتر آفلاین</title>
-
-    <style>
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            background: #f3f5f9;
-            color: #182238;
-            font-family: Tahoma, sans-serif;
-            font-size: 14px;
-            line-height: 1.9;
-        }
-
-        header {
-            background: #142640;
-            color: white;
-            padding: 18px 16px;
-        }
-
-        header strong { font-size: 19px; }
-
-        header small {
-            display: block;
-            color: #d1deef;
-            margin-top: 5px;
-        }
-
-        main {
-            max-width: 760px;
-            margin: auto;
-            padding: 15px 14px 110px;
-        }
-
-        .card {
-            background: white;
-            border: 1px solid #e3e8ef;
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 14px;
-        }
-
-        .notice {
-            background: #fff7df;
-            border: 1px solid #eedba7;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 15px;
-        }
-
-        h2 { font-size: 18px; margin: 0 0 14px; }
-        h3 { font-size: 15px; margin: 0 0 8px; }
-
-        label {
-            display: block;
-            margin: 12px 0 5px;
-        }
-
-        input, textarea, button {
-            font: inherit;
-        }
-
-        input, textarea {
-            width: 100%;
-            background: #fafbfe;
-            border: 1px solid #ccd5e1;
-            border-radius: 10px;
-            padding: 11px;
-            color: #182238;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 150px;
-        }
-
-        button {
-            border: 0;
-            border-radius: 10px;
-            padding: 10px 14px;
-            background: #e7edf6;
-            color: #182238;
-            cursor: pointer;
-        }
-
-        .primary { background: #1767cf; color: white; }
-        .danger { background: #ffeded; color: #b52626; }
-
-        .actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 15px;
-        }
-
-        .muted { color: #66748a; font-size: 12px; }
-
-        .text {
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-        }
-
-        .badge {
-            display: inline-block;
-            background: #fff2d2;
-            color: #795c19;
-            border-radius: 8px;
-            padding: 2px 8px;
-            font-size: 11px;
-            margin-bottom: 8px;
-        }
-
-        nav {
-            position: fixed;
-            right: 0;
-            left: 0;
-            bottom: 0;
-            display: flex;
-            background: white;
-            border-top: 1px solid #dce3ec;
-            padding: 9px 6px;
-            padding-bottom: max(9px, env(safe-area-inset-bottom));
-        }
-
-        nav button {
-            flex: 1;
-            background: transparent;
-            font-size: 12px;
-            padding: 10px 3px;
-        }
-
-        nav button.active {
-            background: #e7f0ff;
-            color: #0755b8;
-            font-weight: bold;
-        }
-
-        #message {
-            position: fixed;
-            left: 14px;
-            right: 14px;
-            top: 12px;
-            max-width: 720px;
-            margin: auto;
-            padding: 12px;
-            background: #18344d;
-            color: white;
-            border-radius: 10px;
-            z-index: 10;
-            display: none;
-        }
-
-        [hidden] { display: none !important; }
-    </style>
+<style>
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  margin:0;background:#f2f5f9;color:#192b41;
+  font:14px/1.9 Tahoma,sans-serif
+}
+header{background:#142a45;color:#fff;padding:20px 16px}
+header strong{font-size:19px}
+header small{display:block;color:#cfdded;margin-top:6px}
+main{max-width:800px;margin:auto;padding:16px 14px 110px}
+h2{font-size:18px;margin:0 0 14px}
+h3{font-size:15px;margin:0 0 8px}
+p{margin:8px 0}
+.card{
+  background:#fff;border:1px solid #e0e7ef;
+  border-radius:16px;padding:16px;margin-bottom:14px
+}
+.notice{
+  background:#fff7df;border:1px solid #ead89e;
+  border-radius:12px;padding:12px;margin-bottom:16px
+}
+.muted{font-size:12px;color:#62748b}
+.text{white-space:pre-wrap;overflow-wrap:anywhere}
+label{display:block;margin:12px 0 5px}
+input,textarea,select,button{font:inherit}
+input,textarea,select{
+  width:100%;padding:11px;border:1px solid #cbd6e3;
+  border-radius:10px;background:#fbfcff;color:#192b41
+}
+textarea{min-height:130px;resize:vertical}
+button{
+  padding:10px 14px;border:0;border-radius:10px;
+  background:#eaf0f7;color:#192b41;cursor:pointer
+}
+button:disabled{opacity:.5;cursor:default}
+.primary{background:#1767cf;color:#fff}
+.danger{background:#ffeded;color:#ac2929}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.actions>*{flex-grow:1}
+.badge{
+  display:inline-block;background:#fff1cd;color:#785b16;
+  border-radius:7px;padding:2px 8px;font-size:11px
+}
+.price{color:#145aab;font-weight:bold}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:#edf4ff;padding:14px;border-radius:12px}
+.stat strong{display:block;font-size:24px;color:#155ab0}
+.toolbar{margin-bottom:14px}
+.toolbar input{margin-top:12px}
+.steps{display:flex;gap:5px;margin:14px 0}
+.steps span{height:5px;background:#dfe7f1;flex:1;border-radius:4px}
+.steps span.done{background:#1767cf}
+.summary-row{
+  padding:9px 0;border-bottom:1px solid #edf0f5;
+  overflow-wrap:anywhere
+}
+.summary-row b{display:block;font-size:12px;color:#65758b}
+nav{
+  position:fixed;bottom:0;left:0;right:0;display:flex;
+  background:#fff;border-top:1px solid #dce4ee;
+  padding:8px 5px;
+  padding-bottom:max(8px,env(safe-area-inset-bottom));
+  z-index:5
+}
+nav button{flex:1;background:transparent;padding:10px 3px;font-size:12px}
+nav button.active{background:#e8f1ff;color:#0757b9;font-weight:bold}
+#message{
+  position:fixed;top:12px;right:14px;left:14px;
+  max-width:760px;margin:auto;background:#193a56;color:white;
+  border-radius:12px;padding:12px;z-index:20
+}
+@media(max-width:440px){.grid{grid-template-columns:1fr}}
+</style>
 </head>
 
 <body>
 <header>
-    <strong>دفتر آفلاین کامیون‌فروش</strong>
-    <small id="account"></small>
+  <strong>دفتر آفلاین کامیون‌فروش</strong>
+  <small id="account"></small>
 </header>
 
-<div id="message" role="status"></div>
+<div id="message" role="status" hidden></div>
 
 <main>
-    <div class="notice">
-        اطلاعات این بخش فقط روی همین گوشی ذخیره می‌شود.
-        پیش‌نویس‌ها هنوز به سایت ارسال نشده‌اند.
+  <div class="notice">
+    اطلاعات این بخش روی همین گوشی ذخیره می‌شود و هنوز به سایت
+    ارسال نمی‌شود. حذف برنامه یا پاک‌کردن داده‌های آن می‌تواند
+    اطلاعات محلی را از بین ببرد.
+  </div>
+
+  <section id="home">
+    <div class="card">
+      <h2>دفتر کار من</h2>
+      <div class="grid">
+        <div class="stat"><strong id="adCount">۰</strong>پیش‌نویس آگهی</div>
+        <div class="stat"><strong id="eventCount">۰</strong>پیش‌نویس پیگیری</div>
+      </div>
+      <div class="actions">
+        <button type="button" class="primary" id="newAd">آگهی جدید</button>
+        <button type="button" id="newEvent">پیگیری جدید</button>
+      </div>
     </div>
 
-    <section id="home">
-        <div class="card">
-            <h2>پیش‌نویس‌های من</h2>
-            <p id="summary"></p>
+    <div class="card">
+      <h3>وضعیت دفتر</h3>
+      <p>ذخیره‌سازی محلی و متنی؛ بدون عکس، فیلم و فایل.</p>
+      <p class="muted">
+        ثبت پیگیری در این قسمت پیامک، اعلان یا یادآور سیستمی
+        ایجاد نمی‌کند. اعتبار حساب و دسترسی‌ها باید هنگام
+        همگام‌سازی آینده دوباره در سرور بررسی شوند.
+      </p>
+    </div>
+  </section>
 
-            <div class="actions">
-                <button class="primary" id="newAd">
-                    نوشتن آگهی
-                </button>
+  <section id="ads" hidden>
+    <div class="toolbar">
+      <h2>آگهی‌های محلی</h2>
+      <button type="button" class="primary" id="addAd">آگهی جدید</button>
+      <input id="adSearch" placeholder="جست‌وجوی عنوان، مشتری، شماره و توضیحات">
+    </div>
+    <div id="adList"></div>
+  </section>
 
-                <button id="newFollowup">
-                    نوشتن پیگیری
-                </button>
-            </div>
-        </div>
+  <section id="followups" hidden>
+    <div class="toolbar">
+      <h2>پیگیری‌های محلی</h2>
+      <button type="button" class="primary" id="addEvent">پیگیری جدید</button>
+      <input id="eventSearch" placeholder="جست‌وجوی پیگیری و آگهی مرتبط">
+    </div>
+    <div id="eventList"></div>
+  </section>
 
-        <div class="card">
-            <h3>وضعیت اتصال به سایت</h3>
-            <p>
-                در این نسخه، این بخش دفتر محلی است؛
-                نه فهرست زندهٔ آگهی‌های سایت.
-            </p>
+  <section id="editor" hidden>
+    <div class="card">
+      <h2 id="editorTitle"></h2>
+      <p id="stepTitle" class="muted"></p>
+      <div id="stepBars" class="steps"></div>
+
+      <form id="editorForm" novalidate>
+        <div id="adFields">
+          <div data-step="0">
+            <label for="adType">نوع آگهی</label>
+            <select id="adType">
+              <option value="">انتخاب کنید</option>
+              <option value="1">خرید</option>
+              <option value="2">فروش</option>
+              <option value="3">معاوضه</option>
+              <option value="other">سایر / تعیین هنگام ارسال</option>
+            </select>
             <p class="muted">
-                اعتبار حساب و مجوز ثبت پیگیری باید هنگام ارسال،
-                دوباره در سرور بررسی شود.
+              این پیش‌نویس محلی است؛ گزینهٔ «سایر» هنوز شناسهٔ سرور ندارد.
             </p>
+          </div>
+
+          <div data-step="1">
+            <label for="groupTitle">دسته‌بندی، به‌صورت یادداشت</label>
+            <input id="groupTitle" maxlength="300"
+                   placeholder="مثلاً کامیون ← کشنده">
+            <p class="muted">
+              تا دریافت فهرست دسته‌ها از سرور، نام دسته یادداشت می‌شود؛
+              این مقدار جایگزین شناسهٔ واقعی دسته نیست.
+            </p>
+          </div>
+
+          <div data-step="2">
+            <label for="adTitle">عنوان آگهی *</label>
+            <input id="adTitle" maxlength="200">
+            <label for="adDescription">شرح آگهی</label>
+            <textarea id="adDescription" maxlength="12000"></textarea>
+          </div>
+
+          <div data-step="3">
+            <label for="price">قیمت به تومان</label>
+            <input id="price" inputmode="numeric" maxlength="40"
+                   placeholder="خالی = تعیین نشده / توافقی">
+          </div>
+
+          <div data-step="4">
+            <label for="customerName">نام مشتری</label>
+            <input id="customerName" maxlength="200">
+            <label for="customerCity">شهر مشتری</label>
+            <input id="customerCity" maxlength="200">
+          </div>
+
+          <div data-step="5">
+            <label for="phone">شماره تماس</label>
+            <input id="phone" type="tel" maxlength="40">
+            <label for="adNote">یادداشت داخلی پیش‌نویس</label>
+            <textarea id="adNote" maxlength="2000"></textarea>
+            <p class="muted">
+              این یادداشت فقط بخشی از پیش‌نویس محلی است؛
+              فعلاً به فیلد خصوصی سایت متصل نشده است.
+            </p>
+          </div>
+
+          <div data-step="6">
+            <h3>بازبینی پیش‌نویس</h3>
+            <div id="adReview"></div>
+            <p class="muted">با ذخیره، آگهی فقط روی همین گوشی نگهداری می‌شود.</p>
+          </div>
         </div>
-    </section>
 
-    <section id="ads" hidden>
-        <h2>پیش‌نویس آگهی‌ها</h2>
-        <button class="primary" id="addAd">آگهی جدید</button>
-        <div id="adList" style="margin-top:14px"></div>
-    </section>
+        <div id="eventFields" hidden>
+          <label for="eventTitle">عنوان پیگیری *</label>
+          <input id="eventTitle" maxlength="200">
 
-    <section id="followups" hidden>
-        <h2>پیش‌نویس پیگیری‌ها</h2>
-        <button class="primary" id="addFollowup">
-            پیگیری جدید
-        </button>
-        <div id="followupList" style="margin-top:14px"></div>
-    </section>
+          <label for="localAd">انتخاب آگهی محلی</label>
+          <select id="localAd"></select>
 
-    <section id="editor" hidden>
-        <div class="card">
-            <h2 id="editorTitle"></h2>
+          <label for="reference">شناسه یا نام آگهی مرتبط *</label>
+          <input id="reference" maxlength="200">
+          <p class="muted">
+            برای آگهی سایت، شناسه یا عنوان را بنویسید.
+            برای آگهی محلی، از فهرست بالا انتخاب کنید.
+          </p>
 
-            <form id="draftForm">
-                <label for="title">عنوان *</label>
-                <input id="title" maxlength="200" required>
+          <label for="eventText">شرح پیگیری</label>
+          <textarea id="eventText" maxlength="12000"></textarea>
 
-                <div id="followupFields">
-                    <label for="reference">
-                        شناسه یا نام آگهی مرتبط *
-                    </label>
-                    <input id="reference" maxlength="200">
+          <label for="nextDate">زمان پیگیری بعدی؛ یادداشت متنی</label>
+          <input id="nextDate" maxlength="100"
+                 placeholder="مثلاً ۱۴۰۵/۰۲/۱۰ ساعت ۱۱">
+          <p class="muted">
+            این مقدار فعلاً به تاریخ سرور تبدیل نمی‌شود و یادآور ایجاد نمی‌کند.
+          </p>
 
-                    <label for="nextDate">
-                        زمان پیگیری بعدی، به‌صورت یادداشت
-                    </label>
-                    <input id="nextDate"
-                           maxlength="100"
-                           placeholder="مثلاً ۱۴۰۵/۰۲/۱۰ ساعت ۱۱">
+          <label for="score">امتیاز کلی مشتری</label>
+          <select id="score">
+            <option value="">ثبت نشده</option>
+            <option value="1">★ — ۱ از ۵</option>
+            <option value="2">★★ — ۲ از ۵</option>
+            <option value="3">★★★ — ۳ از ۵</option>
+            <option value="4">★★★★ — ۴ از ۵</option>
+            <option value="5">★★★★★ — ۵ از ۵</option>
+          </select>
 
-                    <div class="muted">
-                        این تاریخ فعلاً متن یادداشت است؛
-                        اعلان یا پیامک ایجاد نمی‌کند.
-                    </div>
-                </div>
+          <label for="behaviorNote">یادداشت خلقیات مشتری</label>
+          <textarea id="behaviorNote" maxlength="2000"
+            placeholder="لحن، جدیت، شفافیت، مذاکره، تصمیم‌گیرنده و خوش‌قولی"></textarea>
 
-                <label for="text">توضیحات</label>
-                <textarea id="text" maxlength="20000"></textarea>
-
-                <div class="actions">
-                    <button class="primary" type="submit">
-                        ذخیره روی گوشی
-                    </button>
-                    <button type="button" id="cancelEdit">
-                        انصراف
-                    </button>
-                </div>
-            </form>
+          <p class="muted">
+            گزینه‌های استاندارد رفتار پس از دریافت فهرست واقعی
+            از سرور قابل انتخاب خواهند بود.
+          </p>
         </div>
-    </section>
+
+        <div class="actions">
+          <button type="button" id="previous">مرحله قبل</button>
+          <button type="button" class="primary" id="next">مرحله بعد</button>
+          <button type="submit" class="primary" id="save">ذخیره روی گوشی</button>
+          <button type="button" id="cancel">انصراف</button>
+        </div>
+      </form>
+    </div>
+  </section>
 </main>
 
 <nav>
-    <button data-page="home">خانه</button>
-    <button data-page="ads">آگهی‌ها</button>
-    <button data-page="followups">پیگیری‌ها</button>
-    <button id="returnSite">بازگشت به سایت</button>
+  <button type="button" data-page="home">خانه</button>
+  <button type="button" data-page="ads">آگهی‌ها</button>
+  <button type="button" data-page="followups">پیگیری‌ها</button>
+  <button type="button" id="returnSite">سایت</button>
 </nav>
 
 <script>
 (function () {
-    "use strict";
+  "use strict";
 
-    const $ = id => document.getElementById(id);
-    const pages = ["home", "ads", "followups", "editor"];
+  const $ = id => document.getElementById(id);
+  const MAGIC = "KAMION_OFFLINE_V2\n";
+  const pageNames = ["home", "ads", "followups", "editor"];
+  const stepNames = [
+    "نوع آگهی", "دسته‌بندی", "عنوان و شرح", "قیمت",
+    "مشخصات مشتری", "تماس و یادداشت", "بازبینی"
+  ];
+  const types = {"1":"خرید", "2":"فروش", "3":"معاوضه", "other":"سایر"};
+  const adIds = [
+    "adType", "groupTitle", "adTitle", "adDescription",
+    "price", "customerName", "customerCity", "phone", "adNote"
+  ];
+  const eventIds = [
+    "eventTitle", "localAd", "reference", "eventText",
+    "nextDate", "score", "behaviorNote"
+  ];
 
-    let items = [];
-    let editingId = "";
-    let editingKind = "ad";
-    let page = "home";
-    let messageTimer;
+  let items = [];
+  let page = "home";
+  let kind = "ad";
+  let editingId = "";
+  let step = 0;
+  let baseline = "";
+  let original = {};
+  let timer;
+  let busy = false;
+  let bridgeAvailable = false;
 
-    function tell(text) {
-        $("message").textContent = text;
-        $("message").style.display = "block";
+  function tell(text) {
+    $("message").textContent = text;
+    $("message").hidden = false;
+    clearTimeout(timer);
+    timer = setTimeout(() => $("message").hidden = true, 5000);
+  }
 
-        clearTimeout(messageTimer);
-        messageTimer = setTimeout(() => {
-            $("message").style.display = "none";
-        }, 4000);
+  function bridge(name, value) {
+    try {
+      if (!bridgeAvailable) throw new Error("رابط ذخیره‌سازی اپ در دسترس نیست.");
+      const raw = value === undefined
+        ? window.OfflineDrafts[name]()
+        : window.OfflineDrafts[name](value);
+      const result = JSON.parse(raw);
+      if (!result || !result.success)
+        throw new Error(result?.message || "عملیات انجام نشد.");
+      return result;
+    } catch (error) {
+      tell(error.message || "خطای حافظهٔ محلی.");
+      return null;
     }
+  }
 
-    function call(name, value) {
-        try {
-            const raw = value === undefined
-                ? OfflineDrafts[name]()
-                : OfflineDrafts[name](value);
-
-            const result = JSON.parse(raw);
-
-            if (!result.success) {
-                throw new Error(result.message || "عملیات انجام نشد.");
-            }
-
-            return result;
-        } catch (error) {
-            tell(error.message || "ارتباط با حافظهٔ محلی ناموفق بود.");
-            return null;
+  function unpack(item) {
+    const data = item.data || {};
+    const text = typeof data.text === "string" ? data.text : "";
+    if (text.startsWith(MAGIC)) {
+      try {
+        const parsed = JSON.parse(text.slice(MAGIC.length));
+        if (parsed && parsed.version === 2 &&
+            parsed.fields && typeof parsed.fields === "object" &&
+            !Array.isArray(parsed.fields)) {
+          return parsed.fields;
         }
+      } catch (_) {}
     }
 
-    function show(name) {
-        page = name;
-
-        pages.forEach(id => {
-            $(id).hidden = id !== name;
-        });
-
-        document.querySelectorAll("[data-page]").forEach(button => {
-            button.classList.toggle(
-                "active",
-                button.dataset.page === name
-            );
-        });
-
-        window.scrollTo(0, 0);
-    }
-
-    function hasUnsavedChanges() {
-        if (page !== "editor") return false;
-
-        const existing = items.find(x => x.id === editingId);
-        const data = existing ? existing.data : {};
-
-        return (
-            $("title").value.trim() !== (data.title || "") ||
-            $("text").value.trim() !== (data.text || "") ||
-            $("reference").value.trim() !== (data.reference || "") ||
-            $("nextDate").value.trim() !== (data.nextDate || "")
-        );
-    }
-
-    function canLeave() {
-        return !hasUnsavedChanges() ||
-            confirm("تغییرات ذخیره نشده است؛ خارج شوید؟");
-    }
-
-    function paragraph(parent, text, className) {
-        if (!text) return;
-
-        const element = document.createElement("p");
-        element.className = className || "";
-        element.textContent = text;
-        parent.appendChild(element);
-    }
-
-    function renderList(kind, containerId) {
-        const container = $(containerId);
-        container.replaceChildren();
-
-        const rows = items.filter(x => x.kind === kind);
-
-        if (!rows.length) {
-            paragraph(
-                container,
-                "هنوز پیش‌نویسی ذخیره نکرده‌اید.",
-                "muted"
-            );
-            return;
-        }
-
-        rows.forEach(item => {
-            const card = document.createElement("article");
-            card.className = "card";
-
-            const badge = document.createElement("span");
-            badge.className = "badge";
-            badge.textContent = "فقط روی گوشی؛ ارسال نشده";
-            card.appendChild(badge);
-
-            const heading = document.createElement("h3");
-            heading.textContent = item.data.title;
-            card.appendChild(heading);
-
-            paragraph(
-                card,
-                item.data.reference
-                    ? "آگهی مرتبط: " + item.data.reference
-                    : "",
-                "muted"
-            );
-
-            paragraph(
-                card,
-                item.data.nextDate
-                    ? "زمان یادداشت‌شده: " + item.data.nextDate
-                    : "",
-                "muted"
-            );
-
-            paragraph(card, item.data.text, "text");
-
-            paragraph(
-                card,
-                "آخرین ذخیره: " +
-                    new Date(item.updatedAt).toLocaleString("fa-IR"),
-                "muted"
-            );
-
-            const actions = document.createElement("div");
-            actions.className = "actions";
-
-            const edit = document.createElement("button");
-            edit.textContent = "ویرایش";
-            edit.onclick = () => openEditor(item.kind, item);
-            actions.appendChild(edit);
-
-            const remove = document.createElement("button");
-            remove.className = "danger";
-            remove.textContent = "حذف";
-
-            remove.onclick = () => {
-                if (!confirm("این پیش‌نویس از گوشی حذف شود؟")) return;
-
-                if (call("delete", item.id)) {
-                    refresh();
-                    tell("پیش‌نویس حذف شد.");
-                }
-            };
-
-            actions.appendChild(remove);
-            card.appendChild(actions);
-            container.appendChild(card);
-        });
-    }
-
-    function refresh() {
-        const result = call("list");
-        if (!result) return;
-
-        items = result.items || [];
-
-        const ads = items.filter(x => x.kind === "ad").length;
-        const followups = items.filter(x => x.kind === "followup").length;
-
-        $("summary").textContent =
-            ads + " پیش‌نویس آگهی و " +
-            followups + " پیش‌نویس پیگیری روی این گوشی دارید.";
-
-        renderList("ad", "adList");
-        renderList("followup", "followupList");
-    }
-
-    function openEditor(kind, item) {
-        if (!canLeave()) return;
-
-        editingKind = kind;
-        editingId = item ? item.id : "";
-
-        const data = item ? item.data : {};
-
-        $("editorTitle").textContent =
-            kind === "ad"
-                ? "پیش‌نویس آگهی"
-                : "پیش‌نویس پیگیری";
-
-        $("title").value = data.title || "";
-        $("text").value = data.text || "";
-        $("reference").value = data.reference || "";
-        $("nextDate").value = data.nextDate || "";
-
-        $("followupFields").hidden = kind !== "followup";
-        $("reference").required = kind === "followup";
-
-        show("editor");
-    }
-
-    $("draftForm").addEventListener("submit", event => {
-        event.preventDefault();
-
-        const result = call("save", JSON.stringify({
-            id: editingId,
-            kind: editingKind,
-            title: $("title").value,
-            text: $("text").value,
-            reference: editingKind === "followup"
-                ? $("reference").value : "",
-            nextDate: editingKind === "followup"
-                ? $("nextDate").value : ""
-        }));
-
-        if (!result) return;
-
-        refresh();
-        show(editingKind === "ad" ? "ads" : "followups");
-        tell("روی گوشی ذخیره شد؛ هنوز به سایت ارسال نشده است.");
-    });
-
-    document.querySelectorAll("[data-page]").forEach(button => {
-        button.onclick = () => {
-            if (canLeave()) show(button.dataset.page);
+    // پیش‌نویس‌های نسخهٔ قبلی بدون دست‌کاری قابل ویرایش‌اند.
+    return item.kind === "ad"
+      ? {adTitle: data.title || "", adDescription: text}
+      : {
+          eventTitle: data.title || "",
+          eventText: text,
+          reference: data.reference || "",
+          nextDate: data.nextDate || ""
         };
+  }
+
+  function value(id) {
+    return $(id).value.trim();
+  }
+
+  function read() {
+    const result = {};
+    (kind === "ad" ? adIds : eventIds).forEach(id => {
+      result[id] = value(id);
+    });
+    return result;
+  }
+
+  function signature() {
+    return JSON.stringify(read());
+  }
+
+  function canLeave() {
+    return page !== "editor" || signature() === baseline ||
+      confirm("تغییرات ذخیره نشده‌اند؛ خارج شوید؟");
+  }
+
+  function show(name) {
+    page = name;
+    pageNames.forEach(id => $(id).hidden = id !== name);
+    document.querySelectorAll("[data-page]").forEach(button => {
+      button.classList.toggle("active", button.dataset.page === name);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  function paragraph(parent, text, className) {
+    if (!text) return;
+    const p = document.createElement("p");
+    p.className = className || "";
+    p.textContent = text;
+    parent.appendChild(p);
+  }
+
+  function row(parent, label, text) {
+    if (!text) return;
+    const div = document.createElement("div");
+    div.className = "summary-row";
+    const b = document.createElement("b");
+    b.textContent = label;
+    div.appendChild(b);
+    const content = document.createElement("span");
+    content.className = "text";
+    content.textContent = text;
+    div.appendChild(content);
+    parent.appendChild(div);
+  }
+
+  function formatPrice(raw) {
+    if (!raw) return "تعیین نشده / توافقی";
+    const normalized = raw
+      .replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 1776))
+      .replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632))
+      .replace(/[,٬\s]/g, "");
+    if (/^\d+$/.test(normalized))
+      return normalized.replace(/\B(?=(\d{3})+(?!\d))/g, "٬") + " تومان";
+    return raw;
+  }
+
+  function renderReview() {
+    const f = read();
+    const box = $("adReview");
+    box.replaceChildren();
+    row(box, "نوع", types[f.adType] || "تعیین نشده");
+    row(box, "دستهٔ یادداشت‌شده", f.groupTitle);
+    row(box, "عنوان", f.adTitle);
+    row(box, "شرح", f.adDescription);
+    row(box, "قیمت", formatPrice(f.price));
+    row(box, "مشتری", f.customerName);
+    row(box, "شهر", f.customerCity);
+    row(box, "تماس", f.phone);
+    row(box, "یادداشت داخلی", f.adNote);
+  }
+
+  function renderStep() {
+    const isAd = kind === "ad";
+    $("adFields").hidden = !isAd;
+    $("eventFields").hidden = isAd;
+    $("stepBars").hidden = !isAd;
+    $("stepTitle").hidden = !isAd;
+    $("previous").hidden = !isAd || step === 0;
+    $("next").hidden = !isAd || step === 6;
+    $("save").hidden = isAd && step !== 6;
+
+    if (!isAd) return;
+
+    $("stepTitle").textContent =
+      "مرحلهٔ " + (step + 1) + " از ۷ — " + stepNames[step];
+
+    document.querySelectorAll("[data-step]").forEach(el => {
+      el.hidden = Number(el.dataset.step) !== step;
     });
 
-    $("newAd").onclick = $("addAd").onclick =
-        () => openEditor("ad");
+    $("stepBars").replaceChildren();
+    stepNames.forEach((_, index) => {
+      const span = document.createElement("span");
+      if (index <= step) span.className = "done";
+      $("stepBars").appendChild(span);
+    });
 
-    $("newFollowup").onclick = $("addFollowup").onclick =
-        () => openEditor("followup");
+    if (step === 6) renderReview();
+  }
 
-    $("cancelEdit").onclick = () => {
-        if (canLeave()) {
-            show(editingKind === "ad" ? "ads" : "followups");
+  function fillLocalAds(selected) {
+    const select = $("localAd");
+    select.replaceChildren();
+
+    const empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = "انتخاب نشده / آگهی سایت";
+    select.appendChild(empty);
+
+    items.filter(x => x.kind === "ad").forEach(item => {
+      const option = document.createElement("option");
+      option.value = String(item.id);
+      option.textContent = unpack(item).adTitle || item.data?.title || "بدون عنوان";
+      select.appendChild(option);
+    });
+
+    if (selected &&
+        !Array.from(select.options).some(x => x.value === String(selected))) {
+      const missing = document.createElement("option");
+      missing.value = String(selected);
+      missing.textContent = "آگهی محلی قبلی؛ در فهرست موجود نیست";
+      select.appendChild(missing);
+    }
+    select.value = selected ? String(selected) : "";
+  }
+
+  function openEditor(newKind, item, linkedAd) {
+    if (!canLeave()) return;
+
+    kind = newKind;
+    editingId = item ? item.id : "";
+    original = item ? unpack(item) : {};
+    step = 0;
+
+    adIds.concat(eventIds).forEach(id => $(id).value = "");
+    fillLocalAds(original.localAd);
+
+    (kind === "ad" ? adIds : eventIds).forEach(id => {
+      if (id !== "localAd")
+        $(id).value = original[id] == null ? "" : String(original[id]);
+    });
+
+    if (linkedAd) {
+      const title = unpack(linkedAd).adTitle || linkedAd.data?.title || "";
+      $("localAd").value = String(linkedAd.id);
+      $("reference").value = title || "آگهی محلی";
+      $("eventTitle").value = title ? "پیگیری " + title : "پیگیری آگهی";
+    }
+
+    $("editorTitle").textContent =
+      (item ? "ویرایش " : "ثبت ") +
+      (kind === "ad" ? "پیش‌نویس آگهی" : "پیش‌نویس پیگیری");
+
+    renderStep();
+    baseline = signature();
+    show("editor");
+  }
+
+  function renderList(listKind, target, query) {
+    const container = $(target);
+    container.replaceChildren();
+    const needle = (query || "").trim().toLocaleLowerCase("fa");
+
+    const rows = items.filter(item => {
+      if (item.kind !== listKind) return false;
+      const f = unpack(item);
+      const haystack = Object.values(f).join(" ").toLocaleLowerCase("fa");
+      return !needle || haystack.includes(needle);
+    });
+
+    if (!rows.length) {
+      paragraph(container,
+        needle ? "نتیجه‌ای پیدا نشد." : "هنوز پیش‌نویسی ثبت نشده است.",
+        "muted");
+      return;
+    }
+
+    rows.forEach(item => {
+      const f = unpack(item);
+      const card = document.createElement("article");
+      card.className = "card";
+
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      badge.textContent = "محلی؛ ارسال نشده";
+      card.appendChild(badge);
+
+      const title = document.createElement("h3");
+      title.textContent = listKind === "ad"
+        ? f.adTitle || item.data?.title || "بدون عنوان"
+        : f.eventTitle || item.data?.title || "بدون عنوان";
+      card.appendChild(title);
+
+      if (listKind === "ad") {
+        paragraph(card,
+          [types[f.adType], f.groupTitle].filter(Boolean).join(" • "), "muted");
+        paragraph(card, formatPrice(f.price), "price");
+        paragraph(card,
+          [f.customerName, f.customerCity, f.phone].filter(Boolean).join(" | "));
+        paragraph(card, f.adDescription, "text");
+        if (f.adNote) {
+          const details = document.createElement("details");
+          const summary = document.createElement("summary");
+          summary.textContent = "یادداشت داخلی";
+          details.appendChild(summary);
+          paragraph(details, f.adNote, "text");
+          card.appendChild(details);
         }
+      } else {
+        paragraph(card, f.reference ? "آگهی: " + f.reference : "", "muted");
+        paragraph(card, f.eventText, "text");
+        paragraph(card, f.nextDate ? "پیگیری بعدی: " + f.nextDate : "", "muted");
+        if (/^[1-5]$/.test(String(f.score || "")))
+          paragraph(card, "امتیاز مشتری: " + "★".repeat(Number(f.score)));
+        paragraph(card, f.behaviorNote, "text");
+      }
+
+      const date = new Date(item.updatedAt);
+      if (!Number.isNaN(date.getTime()))
+        paragraph(card, "آخرین ذخیره: " + date.toLocaleString("fa-IR"), "muted");
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.textContent = "ویرایش";
+      edit.onclick = () => openEditor(item.kind, item);
+      actions.appendChild(edit);
+
+      if (listKind === "ad") {
+        const follow = document.createElement("button");
+        follow.type = "button";
+        follow.textContent = "ثبت پیگیری";
+        follow.onclick = () => openEditor("followup", null, item);
+        actions.appendChild(follow);
+      }
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "danger";
+      remove.textContent = "حذف";
+      remove.onclick = () => {
+        const linked = items.some(x =>
+          x.kind === "followup" &&
+          String(unpack(x).localAd || "") === String(item.id));
+
+        const warning = linked
+          ? "این آگهی پیگیری محلی دارد. با حذف آن، پیگیری‌ها باقی می‌مانند. حذف شود؟"
+          : "این پیش‌نویس از گوشی حذف شود؟";
+
+        if (!confirm(warning)) return;
+        if (bridge("delete", item.id)) {
+          refresh();
+          tell("پیش‌نویس حذف شد.");
+        }
+      };
+      actions.appendChild(remove);
+      card.appendChild(actions);
+      container.appendChild(card);
+    });
+  }
+
+  function renderLists() {
+    renderList("ad", "adList", $("adSearch").value);
+    renderList("followup", "eventList", $("eventSearch").value);
+  }
+
+  function refresh() {
+    const result = bridge("list");
+    if (!result) return false;
+    items = Array.isArray(result.items) ? result.items : [];
+
+    $("adCount").textContent =
+      items.filter(x => x.kind === "ad").length.toLocaleString("fa-IR");
+    $("eventCount").textContent =
+      items.filter(x => x.kind === "followup").length.toLocaleString("fa-IR");
+
+    renderLists();
+    return true;
+  }
+
+  $("next").onclick = () => {
+    if (step === 2 && !value("adTitle")) {
+      tell("عنوان آگهی را وارد کن.");
+      $("adTitle").focus();
+      return;
+    }
+    step = Math.min(6, step + 1);
+    renderStep();
+    window.scrollTo(0, 0);
+  };
+
+  $("previous").onclick = () => {
+    step = Math.max(0, step - 1);
+    renderStep();
+    window.scrollTo(0, 0);
+  };
+
+  $("localAd").onchange = () => {
+    const id = value("localAd");
+    const ad = items.find(x => x.kind === "ad" && String(x.id) === id);
+    if (ad) {
+      const title = unpack(ad).adTitle || ad.data?.title || "";
+      $("reference").value = title;
+      if (!value("eventTitle")) $("eventTitle").value = "پیگیری " + title;
+    }
+  };
+
+  $("editorForm").onsubmit = event => {
+    event.preventDefault();
+    if (busy) return;
+
+    // Enter در مراحل اولیه نباید فرم را زودتر ذخیره کند.
+    if (kind === "ad" && step < 6) {
+      $("next").click();
+      return;
+    }
+
+    const fields = {...original, ...read()};
+    const title = kind === "ad" ? fields.adTitle : fields.eventTitle;
+
+    if (!title) {
+      if (kind === "ad") {
+        step = 2;
+        renderStep();
+      }
+      tell("عنوان را وارد کن.");
+      $(kind === "ad" ? "adTitle" : "eventTitle").focus();
+      return;
+    }
+
+    if (kind === "followup" && !fields.reference) {
+      tell("آگهی مرتبط را انتخاب کن یا شناسه و نام آن را بنویس.");
+      $("reference").focus();
+      return;
+    }
+
+    const packed = MAGIC + JSON.stringify({version: 2, fields});
+
+    // با سقف ۲۰هزار کاراکتری متن در رابط قبلی سازگار می‌مانیم.
+    if (packed.length > 20000) {
+      tell("حجم متن زیاد است؛ مقداری از توضیحات یا یادداشت‌ها را کوتاه کن.");
+      return;
+    }
+
+    busy = true;
+    $("save").disabled = true;
+
+    try {
+      const result = bridge("save", JSON.stringify({
+        id: editingId,
+        kind,
+        title,
+        text: packed,
+        reference: kind === "followup" ? fields.reference : "",
+        nextDate: kind === "followup" ? fields.nextDate : ""
+      }));
+
+      if (!result) return;
+
+      // بعد از ذخیره، فرم کهنه دوباره قابل ارسال نیست.
+      baseline = signature();
+      show(kind === "ad" ? "ads" : "followups");
+      refresh();
+      tell("روی گوشی ذخیره شد؛ هنوز به سایت ارسال نشده است.");
+    } finally {
+      busy = false;
+      $("save").disabled = false;
+    }
+  };
+
+  $("cancel").onclick = () => {
+    if (canLeave()) show(kind === "ad" ? "ads" : "followups");
+  };
+
+  $("newAd").onclick = $("addAd").onclick = () => openEditor("ad");
+  $("newEvent").onclick = $("addEvent").onclick = () => openEditor("followup");
+
+  $("adSearch").oninput = renderLists;
+  $("eventSearch").oninput = renderLists;
+
+  document.querySelectorAll("[data-page]").forEach(button => {
+    button.onclick = () => {
+      if (canLeave()) show(button.dataset.page);
     };
+  });
 
-    $("returnSite").onclick = () => {
-        if (canLeave()) OfflineDrafts.close();
-    };
+  $("returnSite").onclick = () => {
+    if (!canLeave()) return;
+    try {
+      if (!bridgeAvailable) throw new Error("رابط اپ در دسترس نیست.");
+      window.OfflineDrafts.close();
+    } catch (error) {
+      tell(error.message || "بازگشت به سایت انجام نشد.");
+    }
+  };
 
-    $("account").textContent =
-        "دفتر محلی حساب شمارهٔ " + OfflineDrafts.account();
+  // فقط هنگام خروج واقعی صفحه؛ جابه‌جایی داخلی با canLeave کنترل می‌شود.
+  window.addEventListener("beforeunload", event => {
+    if (page === "editor" && signature() !== baseline) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+  });
 
-    refresh();
-    show("home");
+  try {
+    bridgeAvailable = typeof window.OfflineDrafts !== "undefined";
+    if (bridgeAvailable) {
+      $("account").textContent =
+        "دفتر محلی حساب شمارهٔ " + window.OfflineDrafts.account();
+      refresh();
+    } else {
+      $("account").textContent = "رابط ذخیره‌سازی اپ در دسترس نیست";
+      tell("این صفحه برای اجرا داخل دفتر آفلاین اپ ساخته شده است.");
+    }
+  } catch (_) {
+    bridgeAvailable = false;
+    $("account").textContent = "خطا در دسترسی به دفتر محلی";
+    tell("حافظهٔ محلی در دسترس نیست؛ صفحه را دوباره باز کن.");
+  }
+
+  show("home");
 })();
 </script>
 </body>

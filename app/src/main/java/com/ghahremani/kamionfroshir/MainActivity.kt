@@ -195,6 +195,16 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url?.toString() ?: return false
+                if (
+    request.isForMainFrame &&
+    request.url.scheme == "kamionoffline" &&
+    request.url.host == "open"
+) {
+    if (isOurSite()) {
+        openOfflineWorkspace()
+    }
+    return true
+}
                 if (url.startsWith("tel:") || url.startsWith("sms:") || url.startsWith("mailto:") ||
                     url.contains("wa.me") || url.startsWith("tg:") || url.contains("t.me") ||
                     url.contains("rubika.ir") || url.contains("eitaa.com")) {
@@ -223,6 +233,7 @@ class MainActivity : AppCompatActivity() {
                 if (errorLayout.visibility != View.VISIBLE) {
                     webView.visibility = View.VISIBLE
                 }
+                prepareOfflineEntry()
             }
 
             @RequiresApi(26)
